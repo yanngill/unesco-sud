@@ -85,10 +85,10 @@
       }
     }
 
-    /* =========================
-       4) PUNAISES COLOREES (icône SVG)
-       ========================= */
-   sites.forEach(site => {
+   /* =========================
+   6) AFFICHAGE DES POINTS (ronds)
+   ========================= */
+sites.forEach(site => {
   const color = getColor(site.type);
 
   L.circleMarker([site.lat, site.lng], {
