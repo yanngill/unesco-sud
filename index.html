@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UNESCO – Amérique latine & Caraïbes (hors Mexique)</title>
+
+  <!-- Leaflet CSS (SANS integrity) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <style>
+    html, body { height: 100%; margin: 0; }
+    #map { height: 100%; width: 100%; }
+    .legend {
+      padding: 8px 10px;
+      background: white;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.4;
+      box-shadow: 0 0 6px rgba(0,0,0,0.25);
+    }
+    .legend span {
+      display:inline-block; width:12px; height:12px; margin-right:6px; border-radius:50%;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="map"></div>
+
+  <!-- Leaflet JS (SANS integrity) -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // Sécurité : si Leaflet ne charge pas, on veut un message clair
+    if (typeof L === "undefined") {
+      document.body.innerHTML = "<h2 style='font-family:Arial;padding:16px'>Leaflet ne s’est pas chargé (ressource bloquée).</h2>";
+      throw new Error("Leaflet not loaded");
+    }
+
+    // Carte
+    const map = L.map("map").setView([0, -75], 3);
+
+    // Fonds
+    const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(map);
+
+    const esriSat = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      { maxZoom: 19, attribution: "Tiles &copy; Esri" }
+    );
+
+    const esriLabels = L.tileLayer(
+      "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+      { maxZoom: 19, attribution: "Labels &copy; Esri" }
+    );
+
+    const satAvecNoms = L.layerGroup([esriSat, esriLabels]);
+
+    L.control.layers(
+      { "Carte": osm, "Satellite": esriSat, "Satellite + noms": satAvecNoms },
+      null,
+      { position: "topright" }
+    ).addTo(map);
+
+    // Couleurs
+    function getColor(cat){
+      const c = (cat||"").toLowerCase();
+      if (c === "culturel") return "#1f77b4";
+      if (c === "naturel") return "#2ca02c";
+      if (c === "mixte") return "#9467bd";
+      if (c === "immatériel") return "#ff7f0e";
+      return "#333";
+    }
+
+    // ✅ Test : 4 points factices pour vérifier que tout marche
+    const testPoints = [
+      {name:"Test culturel", lat:-12.0464, lng:-77.0428, cat:"culturel"},
+      {name:"Test naturel", lat:-0.75, lng:-90.3, cat:"naturel"},
+      {name:"Test mixte", lat:-13.163, lng:-72.545, cat:"mixte"},
+      {name:"Test immatériel", lat:-34.6037, lng:-58.3816, cat:"immatériel"},
+    ];
+
+    testPoints.forEach(p=>{
+      const color = getColor(p.cat);
+      L.circleMarker([p.lat,p.lng], {radius:7, color, weight:2, fillColor:color, fillOpacity:0.75})
+        .bindPopup(`<strong>${p.name}</strong><br>Catégorie : ${p.cat}`)
+        .addTo(map);
+    });
+
+    // Légende
+    const legend = L.control({ position: "bottomright" });
+    legend.onAdd = function () {
+      const div = L.DomUtil.create("div", "legend");
+      div.innerHTML = "<strong>Type</strong><br/>";
+      div.innerHTML += `<span style="background:${getColor("culturel")}"></span>Culturel<br/>`;
+      div.innerHTML += `<span style="background:${getColor("naturel")}"></span>Naturel<br/>`;
+      div.innerHTML += `<span style="background:${getColor("mixte")}"></span>Mixte<br/>`;
+      div.innerHTML += `<span style="background:${getColor("immatériel")}"></span>Immatériel<br/>`;
+      return div;
+    };
+    legend.addTo(map);
+  </script>
+</body>
+</html>
