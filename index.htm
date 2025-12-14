@@ -101,29 +101,35 @@
     ).addTo(map);
 
     // --------- 4) Charger la liste UNESCO exhaustive (Patrimoine mondial) ----------
-    // Flux officiel XML UNESCO (Patrimoine mondial)
+    // IMPORTANT : on charge le fichier du repo (racine) pour éviter le blocage GitHub/CORS
     const UNESCO_XML = "unesco.xml";
 
     fetch(UNESCO_XML)
-      .then(r => r.text())
+      .then(r => {
+        if (!r.ok) throw new Error("HTTP " + r.status + " en chargeant " + UNESCO_XML);
+        return r.text();
+      })
       .then(xmlText => {
         const doc = new DOMParser().parseFromString(xmlText, "application/xml");
-        const sites = Array.from(doc.getElementsByTagName("site"));
+
+        // IMPORTANT : querySelectorAll fonctionne même si le XML utilise des namespaces
+        const sites = Array.from(doc.querySelectorAll("site"));
+        console.log("Sites UNESCO trouvés dans le XML (total):", sites.length);
 
         let added = 0;
 
         sites.forEach(s => {
           const name =
-            (s.getElementsByTagName("name_fr")[0]?.textContent || "").trim() ||
-            (s.getElementsByTagName("name_en")[0]?.textContent || "").trim() ||
-            (s.getElementsByTagName("name")[0]?.textContent || "").trim();
+            (s.querySelector("name_fr")?.textContent || "").trim() ||
+            (s.querySelector("name_en")?.textContent || "").trim() ||
+            (s.querySelector("name")?.textContent || "").trim();
 
-          const states = (s.getElementsByTagName("states")[0]?.textContent || "").trim(); // ex: "Argentina, Brazil"
-          const category = (s.getElementsByTagName("category")[0]?.textContent || "").trim(); // Cultural/Natural/Mixed
-          const year = (s.getElementsByTagName("date_inscribed")[0]?.textContent || "").trim();
+          const states = (s.querySelector("states")?.textContent || "").trim(); // ex: "Argentina, Brazil"
+          const category = (s.querySelector("category")?.textContent || "").trim(); // Cultural/Natural/Mixed
+          const year = (s.querySelector("date_inscribed")?.textContent || "").trim();
 
-          const lat = parseFloat((s.getElementsByTagName("latitude")[0]?.textContent || "").trim());
-          const lng = parseFloat((s.getElementsByTagName("longitude")[0]?.textContent || "").trim());
+          const lat = parseFloat((s.querySelector("latitude")?.textContent || "").trim());
+          const lng = parseFloat((s.querySelector("longitude")?.textContent || "").trim());
 
           if (!name || !states || Number.isNaN(lat) || Number.isNaN(lng)) return;
 
@@ -153,11 +159,11 @@
           added++;
         });
 
-        console.log("UNESCO Amérique du Sud ajoutés :", added);
+        console.log("UNESCO Amérique du Sud ajoutés (filtrés):", added);
       })
       .catch(err => {
         console.error("Erreur UNESCO XML:", err);
-        alert("Impossible de charger la liste UNESCO. Si GitHub bloque, je te donne la version 'XML dans le repo'.");
+        alert("Erreur : impossible de charger/parse 'unesco.xml'. Vérifie qu’il est bien à la racine du repo et que la page a été rechargée (Cmd+Shift+R).");
       });
 
     // --------- 5) Légende ----------
