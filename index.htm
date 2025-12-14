@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UNESCO – Amérique du Sud (exhaustif)</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+
+  <style>
+    html, body { height:100%; margin:0; }
+    #map { width:100%; height:100%; }
+    .legend {
+      padding: 8px 10px;
+      background: white;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.4;
+      box-shadow: 0 0 6px rgba(0,0,0,0.25);
+    }
+    .legend span {
+      display:inline-block; width:12px; height:12px; margin-right:6px; border-radius:50%;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="map"></div>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <script>
+    // --------- 1) Filtre Amérique du Sud (noms côté UNESCO XML) ----------
+    const SOUTH_AMERICA = new Set([
+      "Argentina",
+      "Bolivia (Plurinational State of)",
+      "Brazil",
+      "Chile",
+      "Colombia",
+      "Ecuador",
+      "Guyana",
+      "Paraguay",
+      "Peru",
+      "Suriname",
+      "Uruguay",
+      "Venezuela (Bolivarian Republic of)"
+    ]);
+
+    // --------- 2) Couleurs ----------
+    function getColor(category) {
+      const c = (category || "").toLowerCase();
+      if (c.includes("cultural")) return "#1f77b4";
+      if (c.includes("natural")) return "#2ca02c";
+      if (c.includes("mixed")) return "#9467bd";
+      return "#333";
+    }
+
+    // --------- 3) Carte + fonds (carte / satellite) ----------
+    const map = L.map("map").setView([-15, -60], 3.2);
+
+    // Fond carte classique (gratuit)
+    const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "&copy; OpenStreetMap"
+    });
+
+    // Fond satellite gratuit (Esri World Imagery)
+    const esriSat = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      {
+        maxZoom: 19,
+        attribution: "Tiles &copy; Esri"
+      }
+    );
+
+    // Fond hybride (labels par-dessus le satellite) (gratuit)
+    const esriLabels = L.tileLayer(
+      "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+      { maxZoom: 19, attribution: "Labels &copy; Esri" }
+    );
+
+    const satelliteAvecNoms = L.layerGroup([esriSat, esriLabels]);
+
+    // Active le fond par défaut
+    osm.addTo(map);
+
+    // Bouton de choix des fonds (en haut à droite)
+    L.control.layers(
+      { "Carte": osm, "Satellite": esriSat, "Satellite + noms": satelliteAvecNoms },
+      null,
+      { position: "topright" }
+    ).addTo(map);
+
+    // --------- 4) Charger la liste UNESCO exhaustive (Patrimoine mondial) ----------
+    // Flux officiel XML UNESCO (Patrimoine mondial)
+    const UNESCO_XML = "https://whc.unesco.org/en/list/xml";
+
+    fetch(UNESCO_XML)
+      .then(r => r.text())
+      .then(xmlText => {
+        const doc = new DOMParser().parseFromString(xmlText, "application/xml");
+        const sites = Array.from(doc.getElementsByTagName("site"));
+
+        let added = 0;
+
+        sites.forEach(s => {
+          const name =
+            (s.getElementsByTagName("name_fr")[0]?.textContent || "").trim() ||
+            (s.getElementsByTagName("name_en")[0]?.textContent || "").trim() ||
+            (s.getElementsByTagName("name")[0]?.textContent || "").trim();
+
+          const states = (s.getElementsByTagName("states")[0]?.textContent || "").trim(); // ex: "Argentina, Brazil"
+          const category = (s.getElementsByTagName("category")[0]?.textContent || "").trim(); // Cultural/Natural/Mixed
+          const year = (s.getElementsByTagName("date_inscribed")[0]?.textContent || "").trim();
+
+          const lat = parseFloat((s.getElementsByTagName("latitude")[0]?.textContent || "").trim());
+          const lng = parseFloat((s.getElementsByTagName("longitude")[0]?.textContent || "").trim());
+
+          if (!name || !states || Number.isNaN(lat) || Number.isNaN(lng)) return;
+
+          // Filtre : garder si AU MOINS un des pays est en Amérique du Sud
+          const stateParts = states.split(",").map(x => x.trim()).filter(Boolean);
+          const ok = stateParts.some(st => SOUTH_AMERICA.has(st));
+          if (!ok) return;
+
+          const color = getColor(category);
+
+          const marker = L.circleMarker([lat, lng], {
+            radius: 7,
+            color,
+            weight: 2,
+            fillColor: color,
+            fillOpacity: 0.75
+          });
+
+          const popupHtml = `
+            <strong>${name}</strong><br/>
+            <strong>Pays :</strong> ${states}<br/>
+            <strong>Type :</strong> ${category}<br/>
+            <strong>Inscription :</strong> ${year || "—"}
+          `;
+
+          marker.bindPopup(popupHtml).addTo(map);
+          added++;
+        });
+
+        console.log("UNESCO Amérique du Sud ajoutés :", added);
+      })
+      .catch(err => {
+        console.error("Erreur UNESCO XML:", err);
+        alert("Impossible de charger la liste UNESCO. Si GitHub bloque, je te donne la version 'XML dans le repo'.");
+      });
+
+    // --------- 5) Légende ----------
+    const legend = L.control({ position: "bottomright" });
+    legend.onAdd = function () {
+      const div = L.DomUtil.create("div", "legend");
+      div.innerHTML = "<strong>Type de patrimoine</strong><br/>";
+      div.innerHTML += `<span style="background:${getColor("Cultural")}"></span>Bien culturel<br/>`;
+      div.innerHTML += `<span style="background:${getColor("Natural")}"></span>Bien naturel<br/>`;
+      div.innerHTML += `<span style="background:${getColor("Mixed")}"></span>Bien mixte<br/>`;
+      return div;
+    };
+    legend.addTo(map);
+  </script>
+</body>
+</html>
