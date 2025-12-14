@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>UNESCO – Amérique latine & Caraïbes (hors Mexique)</title>
 
-  <!-- Leaflet (sans integrity pour éviter écran blanc) -->
+  <!-- Leaflet (sans integrity = pas d'écran blanc) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
   <style>
@@ -42,40 +42,27 @@
     const map = L.map("map").setView([0, -70], 3);
 
     /* =========================
-       2) FONDS DE CARTE
+       2) FONDS (2 fonds avec noms)
        ========================= */
-
     // Carte classique AVEC noms (OpenStreetMap)
-    const mapOSM = L.tileLayer(
-      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      {
-        maxZoom: 19,
-        attribution: "&copy; OpenStreetMap"
-      }
-    ).addTo(map);
+    const mapOSM = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap"
+    }).addTo(map);
 
-    // Satellite
+    // Satellite + noms (Esri imagery + labels)
     const satellite = L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      {
-        maxZoom: 19,
-        attribution: "Tiles &copy; Esri"
-      }
+      { maxZoom: 19, attribution: "Tiles &copy; Esri" }
     );
 
-    // Labels (noms des villes, pays, etc.)
     const labels = L.tileLayer(
       "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
-      {
-        maxZoom: 19,
-        attribution: "Labels &copy; Esri"
-      }
+      { maxZoom: 19, attribution: "Labels &copy; Esri" }
     );
 
-    // Satellite + noms
     const satelliteAvecNoms = L.layerGroup([satellite, labels]);
 
-    // Sélecteur de fonds
     L.control.layers(
       {
         "Carte (avec noms)": mapOSM,
@@ -86,7 +73,7 @@
     ).addTo(map);
 
     /* =========================
-       3) COULEURS PAR CATÉGORIE
+       3) COULEURS
        ========================= */
     function getColor(type) {
       switch (type) {
@@ -99,75 +86,127 @@
     }
 
     /* =========================
-       4) SITES UNESCO (À COMPLÉTER)
+       4) PUNAISES COLOREES (icône SVG)
+       ========================= */
+    function makePinIcon(color) {
+      // petit “pin” SVG en data-uri
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="36" viewBox="0 0 26 36">
+          <path d="M13 35C13 35 2 21.5 2 13C2 6.4 7.4 1 13 1s11 5.4 11 12c0 8.5-11 22-11 22z"
+                fill="${color}" stroke="#111" stroke-width="1.2"/>
+          <circle cx="13" cy="13" r="5.2" fill="#fff" opacity="0.95"/>
+        </svg>
+      `.trim();
+
+      const url = "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg);
+
+      return L.icon({
+        iconUrl: url,
+        iconSize: [26, 36],
+        iconAnchor: [13, 35],
+        popupAnchor: [0, -30]
+      });
+    }
+
+    /* =========================
+       5) TES POINTS (collés “à la main”)
        =========================
-       👉 Tu ajoutes ici les sites,
-       👉 UN PAR UN, sans te battre.
+       Format : {lat, lng, type, popup}
     */
     const sites = [
-      {
-        nom: "Machu Picchu",
-        pays: "Pérou",
-        lat: -13.1631,
-        lng: -72.5450,
-        type: "mixte",
-        annee: 1983,
-        description: "Cité inca emblématique perchée dans les Andes."
-      },
-      {
-        nom: "Îles Galápagos",
-        pays: "Équateur",
-        lat: -0.75,
-        lng: -90.30,
-        type: "naturel",
-        annee: 1978,
-        description: "Archipel volcanique, laboratoire naturel de l’évolution."
-      },
-      {
-        nom: "Centre historique de La Havane",
-        pays: "Cuba",
-        lat: 23.1333,
-        lng: -82.3833,
-        type: "culturel",
-        annee: 1982,
-        description: "Ville coloniale espagnole majeure des Caraïbes."
-      },
-      {
-        nom: "Tango",
-        pays: "Argentine / Uruguay",
-        lat: -34.6037,
-        lng: -58.3816,
-        type: "immatériel",
-        annee: 2009,
-        description: "Musique et danse emblématiques du Río de la Plata."
-      }
+      {lat: 17.00694, lng: -61.76444, type: "culturel", popup: "Antigua Naval Dockyard (Antigua & Barbuda, 2016, Cultural)"},
+      {lat: -50.0, lng: -73.24944, type: "naturel", popup: "Los Glaciares National Park (Argentina, 1981, Natural)"},
+      {lat: -25.577357, lng: -54.286073, type: "naturel", popup: "Iguazú National Park (Argentina, 1984, Natural)"},
+      {lat: -47.15, lng: -70.666667, type: "culturel", popup: "Cueva de las Manos (Argentina, 1999, Cultural)"},
+      {lat: -42.5, lng: -64.0, type: "naturel", popup: "Península Valdés (Argentina, 1999, Natural)"},
+      {lat: -30.0, lng: -68.0, type: "naturel", popup: "Ischigualasto / Talampaya Natural Parks (Argentina, 2000, Natural)"},
+      {lat: -31.42056, lng: -64.19111, type: "culturel", popup: "Jesuit Block and Estancias of Córdoba (Argentina, 2000, Cultural)"},
+      {lat: -23.2, lng: -65.34886111, type: "culturel", popup: "Quebrada de Humahuaca (Argentina, 2003, Cultural)"},
+      {lat: 13.096667, lng: -59.613889, type: "culturel", popup: "Bridgetown Historic Garrison (Barbados, 2011, Cultural)"},
+      {lat: 17.315, lng: -87.534, type: "naturel", popup: "Belize Barrier Reef Reserve System (Belize, 1996, Natural)"},
+      {lat: -19.599112, lng: -65.749813, type: "culturel", popup: "City of Potosí (Bolivia, 1987, Cultural)"},
+      {lat: -16.0, lng: -60.5, type: "culturel", popup: "Jesuit Missions of the Chiquitos (Bolivia, 1990, Cultural)"},
+      {lat: -19.04799, lng: -65.259592, type: "culturel", popup: "Historic City of Sucre (Bolivia, 1991, Cultural)"},
+      {lat: -16.555003, lng: -68.673278, type: "culturel", popup: "Tiwanaku (Bolivia, 2000, Cultural)"},
+      {lat: -18.178323, lng: -63.820485, type: "culturel", popup: "Fuerte de Samaipata (Bolivia, 1998, Cultural)"},
+      {lat: -14.26667, lng: -60.86667, type: "naturel", popup: "Noel Kempff Mercado National Park (Bolivia, 2000, Natural)"},
+      {lat: -20.388889, lng: -43.505556, type: "culturel", popup: "Historic Town of Ouro Preto (Brazil, 1980, Cultural)"},
+      {lat: -8.013333, lng: -34.845, type: "culturel", popup: "Historic Centre of Olinda (Brazil, 1982, Cultural)"},
+      {lat: -12.972917, lng: -38.512981, type: "culturel", popup: "Historic Centre of Salvador de Bahia (Brazil, 1985, Cultural)"},
+      {lat: -20.508201, lng: -43.860806, type: "culturel", popup: "Sanctuary of Bom Jesus do Congonhas (Brazil, 1985, Cultural)"},
+      {lat: -25.44814722, lng: -53.80014444, type: "naturel", popup: "Iguaçu National Park (Brazil, 1986, Natural)"},
+      {lat: -15.793, lng: -47.882, type: "culturel", popup: "Brasília (Brazil, 1987, Cultural)"},
+      {lat: -33.047, lng: -71.612, type: "culturel", popup: "Historic Quarter of Valparaíso (Chile, 2003, Cultural)"},
+      {lat: -42.58, lng: -73.99, type: "culturel", popup: "Churches of Chiloé (Chile, 2000, Cultural)"},
+      {lat: -20.22, lng: -68.18, type: "culturel", popup: "Humberstone and Santa Laura Saltpeter Works (Chile, 2005, Cultural)"},
+      {lat: -33.09, lng: -70.34, type: "culturel", popup: "Sewell Mining Town (Chile, 2006, Cultural)"},
+      {lat: -19.0, lng: -70.13, type: "culturel", popup: "Chinchorro Culture Sites (Chile, 2021, Cultural)"},
+      {lat: 11.25, lng: -74.206, type: "culturel", popup: "Historic Centre of Santa Cruz de Mompox (Colombia, 1995, Cultural)"},
+      {lat: 4.85, lng: -75.67, type: "culturel", popup: "Coffee Cultural Landscape of Colombia (Colombia, 2011, Cultural)"},
+      {lat: 2.65, lng: -77.75, type: "culturel", popup: "National Archeological Park of Tierradentro (Colombia, 1995, Cultural)"},
+      {lat: 1.5, lng: -76.0, type: "culturel", popup: "San Agustín Archaeological Park (Colombia, 1995, Cultural)"},
+      {lat: 4.4, lng: -72.0, type: "naturel", popup: "Chiribiquete National Park (Colombia, 2018, Natural)"},
+      {lat: 7.2, lng: -81.73, type: "naturel", popup: "Malpelo Fauna and Flora Sanctuary (Colombia, 2006, Natural)"},
+      {lat: 5.52, lng: -87.06, type: "naturel", popup: "Cocos Island National Park (Costa Rica, 1997, Natural)"},
+      {lat: 10.85, lng: -85.616667, type: "naturel", popup: "Area de Conservación Guanacaste (Costa Rica, 1999, Natural)"},
+      {lat: 8.938453, lng: -83.502539, type: "culturel", popup: "Precolumbian Chiefdom Settlements with Stone Spheres (Costa Rica, 2014, Cultural)"},
+      {lat: 21.8, lng: -79.98444444, type: "naturel", popup: "Alejandro de Humboldt National Park (Cuba, 2001, Natural)"},
+      {lat: 23.133333, lng: -82.35, type: "culturel", popup: "Trinidad and the Valley de los Ingenios (Cuba, 1988, Cultural)"},
+      {lat: 22.61667, lng: -75.0, type: "culturel", popup: "Viñales Valley (Cuba, 1999, Cultural)"},
+      {lat: 20.0, lng: -77.0, type: "culturel", popup: "San Pedro de la Roca Castle, Santiago de Cuba (Cuba, 1997, Cultural)"},
+      {lat: 19.968446, lng: -75.870441, type: "naturel", popup: "Desembarco del Granma National Park (Cuba, 1999, Natural)"},
+      {lat: 19.88333, lng: -77.63333, type: "culturel", popup: "Archaeological Landscape of the First Coffee Plantations (Cuba, 2000, Cultural)"},
+      {lat: 22.145887, lng: -80.452183, type: "culturel", popup: "Historic Centre of Cienfuegos (Cuba, 2005, Cultural)"},
+      {lat: 21.37861111, lng: -77.91861111, type: "culturel", popup: "Historic Centre of Camagüey (Cuba, 2008, Cultural)"},
+      {lat: 18.48, lng: -69.88, type: "culturel", popup: "Colonial City of Santo Domingo (Dominican Republic, 1990, Cultural)"},
+      {lat: -0.74, lng: -90.31, type: "naturel", popup: "Galápagos Islands (Ecuador, 1978, Natural)"},
+      {lat: -0.22, lng: -78.51, type: "culturel", popup: "City of Quito (Ecuador, 1978, Cultural)"},
+      {lat: -2.17, lng: -80.03, type: "culturel", popup: "Santa Ana de los Ríos de Cuenca (Ecuador, 1999, Cultural)"},
+      {lat: -1.67, lng: -78.65, type: "naturel", popup: "Sangay National Park (Ecuador, 1983, Natural)"},
+      {lat: 13.8275, lng: -89.36917, type: "culturel", popup: "Joya de Cerén Archaeological Site (El Salvador, 1993, Cultural)"},
+      {lat: 17.217, lng: -89.617, type: "mixte", popup: "Tikal National Park (Guatemala, 1979, Mixed)"},
+      {lat: 14.567, lng: -90.667, type: "culturel", popup: "Antigua Guatemala (Guatemala, 1979, Cultural)"},
+      {lat: 15.27056, lng: -89.04028, type: "culturel", popup: "Archaeological Park and Ruins of Quiriguá (Guatemala, 1981, Cultural)"},
+      {lat: 19.93, lng: -72.02, type: "culturel", popup: "National History Park – Citadel, Sans-Souci, Ramiers (Haiti, 1982, Cultural)"},
+      {lat: 14.85, lng: -89.13333, type: "culturel", popup: "Maya Site of Copán (Honduras, 1980, Cultural)"},
+      {lat: 15.74444, lng: -84.675, type: "naturel", popup: "Río Plátano Biosphere Reserve (Honduras, 1982, Natural)"},
+      {lat: 18.10, lng: -76.65, type: "mixte", popup: "Blue and John Crow Mountains (Jamaica, 2015, Mixed)"},
+      {lat: 12.424, lng: -86.882, type: "culturel", popup: "Ruins of León Viejo (Nicaragua, 2000, Cultural)"},
+      {lat: 12.435, lng: -86.88, type: "culturel", popup: "León Cathedral (Nicaragua, 2011, Cultural)"},
+      {lat: 8.95, lng: -79.535, type: "culturel", popup: "Archaeological Site of Panamá Viejo and Historic District (Panama, 1997/2003, Cultural)"},
+      {lat: 7.9, lng: -77.7, type: "naturel", popup: "Darien National Park (Panama, 1981, Natural)"},
+      {lat: 9.40722, lng: -82.93889, type: "naturel", popup: "Talamanca Range-La Amistad Reserves (Panama/Costa Rica, 1983, Natural)"},
+      {lat: 9.55389, lng: -79.65583, type: "culturel", popup: "Fortifications of Portobelo and San Lorenzo (Panama, 1980, Cultural)"},
+      {lat: 7.5, lng: -81.72, type: "naturel", popup: "Coiba National Park (Panama, 2005, Natural)"},
+      {lat: -27.12, lng: -55.7, type: "culturel", popup: "Jesuit Missions of Trinidad and Jesús (Paraguay, 1993, Cultural)"},
+      {lat: -13.163, lng: -72.545, type: "mixte", popup: "Historic Sanctuary of Machu Picchu (Peru, 1983, Mixed)"},
+      {lat: -13.52, lng: -71.97, type: "culturel", popup: "City of Cuzco (Peru, 1983, Cultural)"},
+      {lat: -12.05, lng: -77.043, type: "culturel", popup: "Historic Centre of Lima (Peru, 1988, Cultural)"},
+      {lat: -9.13, lng: -77.6, type: "naturel", popup: "Huascarán National Park (Peru, 1985, Natural)"},
+      {lat: -10.892, lng: -77.52, type: "culturel", popup: "Sacred City of Caral-Supe (Peru, 2009, Cultural)"},
+      {lat: 17.336, lng: -62.839, type: "culturel", popup: "Brimstone Hill Fortress National Park (St Kitts & Nevis, 1999, Cultural)"},
+      {lat: 13.833, lng: -61.05, type: "naturel", popup: "Pitons Management Area (St Lucia, 2004, Natural)"},
+      {lat: 5.83, lng: -55.17, type: "culturel", popup: "Historic Inner City of Paramaribo (Suriname, 2002, Cultural)"},
+      {lat: 4.0, lng: -56.5, type: "naturel", popup: "Central Suriname Nature Reserve (Suriname, 2000, Natural)"},
+      {lat: -34.473, lng: -57.85, type: "culturel", popup: "Historic Quarter of Colonia del Sacramento (Uruguay, 1995, Cultural)"},
+      {lat: -33.132, lng: -58.3, type: "culturel", popup: "Fray Bentos Industrial Landscape (Uruguay, 2015, Cultural)"},
+      {lat: 5.66, lng: -61.5, type: "naturel", popup: "Canaima National Park (Venezuela, 1994, Natural)"},
+      {lat: 11.41, lng: -69.68, type: "culturel", popup: "Coro and its Port (Venezuela, 1993, Cultural)"},
+      {lat: 10.488, lng: -66.889, type: "culturel", popup: "Ciudad Universitaria de Caracas (Venezuela, 2000, Cultural)"}
     ];
 
     /* =========================
-       5) AFFICHAGE DES POINTS
+       6) AFFICHAGE DES PUNAISES
        ========================= */
     sites.forEach(site => {
-      const color = getColor(site.type);
-
-      L.circleMarker([site.lat, site.lng], {
-        radius: 7,
-        color: color,
-        weight: 2,
-        fillColor: color,
-        fillOpacity: 0.75
-      })
-      .bindPopup(`
-        <strong>${site.nom}</strong><br/>
-        <strong>Pays :</strong> ${site.pays}<br/>
-        <strong>Type :</strong> ${site.type}<br/>
-        <strong>UNESCO :</strong> ${site.annee}<br/><br/>
-        ${site.description}
-      `)
-      .addTo(map);
+      const icon = makePinIcon(getColor(site.type));
+      L.marker([site.lat, site.lng], { icon })
+        .bindPopup(site.popup)
+        .addTo(map);
     });
 
     /* =========================
-       6) LÉGENDE
+       7) LÉGENDE
        ========================= */
     const legend = L.control({ position: "bottomright" });
     legend.onAdd = function () {
@@ -180,6 +219,14 @@
       return div;
     };
     legend.addTo(map);
+
+    /* =========================
+       8) AJOUTER LA SUITE
+       =========================
+       Tu colles la suite des points dans const sites = [...]
+       Même format :
+       {lat: ..., lng: ..., type: "culturel|naturel|mixte|immatériel", popup: "..."}
+    */
   </script>
 </body>
 </html>
