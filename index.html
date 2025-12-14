@@ -1,156 +1,182 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <title>UNESCO Heritage Map – Latin America & Caribbean</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha384-sA+U9B+SV8MuEEa+Cp4MJl79xv4OmxV6ZK59SP6CwQ/GJk+05RHXZRfRZ0Bsov2M" crossorigin=""/>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UNESCO – Amérique latine & Caraïbes (hors Mexique)</title>
+
+  <!-- Leaflet (sans integrity pour éviter écran blanc) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
   <style>
-    #map { height: 90vh; width: 100%; }
-    .legend { background: white; padding: 6px 8px; font: 14px Arial, sans-serif; }
-    .legend i { width: 12px; height: 12px; float: left; margin-right: 8px; opacity: 0.8; }
+    html, body { height:100%; margin:0; }
+    #map { width:100%; height:100%; }
+
+    .legend {
+      padding: 8px 10px;
+      background: white;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.4;
+      box-shadow: 0 0 6px rgba(0,0,0,0.25);
+    }
+    .legend span {
+      display:inline-block;
+      width:12px;
+      height:12px;
+      margin-right:6px;
+      border-radius:50%;
+    }
   </style>
 </head>
+
 <body>
   <div id="map"></div>
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha384-sA+KzQEeW7G5XniAmxPJxiQFa4p/temSQDBRFevt0RRaX4q+v+pQOMfZpHTDAB+O" crossorigin=""></script>
-  <script>
-    // Initialize map centered on Latin America
-    var map = L.map('map').setView([0, -60], 3);
-    // Base layers: Street Map and Satellite
-    var streetMap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19, 
-        attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
-    }).addTo(map);
-    var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        maxZoom: 19, 
-        attribution: 'Imagery © Esri & USGS'
-    });
-    // Layer control
-    L.control.layers({"Map": streetMap, "Satellite": satellite}).addTo(map);
 
-    // Function to style markers by category
-    function categoryStyle(cat) {
-      var color;
-      if      (cat === 'Cultural')  color = 'red';
-      else if (cat === 'Natural')   color = 'green';
-      else if (cat === 'Mixed')     color = 'blue';
-      else if (cat === 'Intangible')color = 'purple';
-      return { radius: 6, color: color, fillColor: color, fillOpacity: 0.8 };
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    /* =========================
+       1) INITIALISATION CARTE
+       ========================= */
+    const map = L.map("map").setView([0, -70], 3);
+
+    /* =========================
+       2) FONDS DE CARTE
+       ========================= */
+
+    // Carte classique AVEC noms (OpenStreetMap)
+    const mapOSM = L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap"
+      }
+    ).addTo(map);
+
+    // Satellite
+    const satellite = L.tileLayer(
+      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      {
+        maxZoom: 19,
+        attribution: "Tiles &copy; Esri"
+      }
+    );
+
+    // Labels (noms des villes, pays, etc.)
+    const labels = L.tileLayer(
+      "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+      {
+        maxZoom: 19,
+        attribution: "Labels &copy; Esri"
+      }
+    );
+
+    // Satellite + noms
+    const satelliteAvecNoms = L.layerGroup([satellite, labels]);
+
+    // Sélecteur de fonds
+    L.control.layers(
+      {
+        "Carte (avec noms)": mapOSM,
+        "Satellite (avec noms)": satelliteAvecNoms
+      },
+      null,
+      { position: "topright" }
+    ).addTo(map);
+
+    /* =========================
+       3) COULEURS PAR CATÉGORIE
+       ========================= */
+    function getColor(type) {
+      switch (type) {
+        case "culturel": return "#1f77b4";
+        case "naturel": return "#2ca02c";
+        case "mixte": return "#9467bd";
+        case "immatériel": return "#ff7f0e";
+        default: return "#333";
+      }
     }
 
-    // World Heritage Site markers (tangible heritage)
-    var heritageSites = [
-      {coords: [17.00694, -61.76444], popup: "Antigua Naval Dockyard (Antigua & Barbuda, 2016, Cultural)", category: "Cultural"},
-      {coords: [-50.0, -73.24944], popup: "Los Glaciares National Park (Argentina, 1981, Natural)", category: "Natural"},
-      {coords: [-25.577357, -54.286073], popup: "Iguazú National Park (Argentina, 1984, Natural)", category: "Natural"},
-      {coords: [-47.15, -70.666667], popup: "Cueva de las Manos (Argentina, 1999, Cultural)", category: "Cultural"},
-      {coords: [-42.5, -64.0], popup: "Península Valdés (Argentina, 1999, Natural)", category: "Natural"},
-      {coords: [-30.0, -68.0], popup: "Ischigualasto / Talampaya Natural Parks (Argentina, 2000, Natural)", category: "Natural"},
-      {coords: [-31.42056, -64.19111], popup: "Jesuit Block and Estancias of Córdoba (Argentina, 2000, Cultural)", category: "Cultural"},
-      {coords: [-23.2, -65.34886111], popup: "Quebrada de Humahuaca (Argentina, 2003, Cultural)", category: "Cultural"},
-      {coords: [13.096667, -59.613889], popup: "Bridgetown Historic Garrison (Barbados, 2011, Cultural)", category: "Cultural"},
-      {coords: [17.315, -87.534], popup: "Belize Barrier Reef Reserve System (Belize, 1996, Natural)", category: "Natural"},
-      {coords: [-19.599112, -65.749813], popup: "City of Potosí (Bolivia, 1987, Cultural)", category: "Cultural"},
-      {coords: [-16.0, -60.5], popup: "Jesuit Missions of the Chiquitos (Bolivia, 1990, Cultural)", category: "Cultural"},
-      {coords: [-19.04799, -65.259592], popup: "Historic City of Sucre (Bolivia, 1991, Cultural)", category: "Cultural"},
-      {coords: [-16.555003, -68.673278], popup: "Tiwanaku (Bolivia, 2000, Cultural)", category: "Cultural"},
-      {coords: [-18.178323, -63.820485], popup: "Fuerte de Samaipata (Bolivia, 1998, Cultural)", category: "Cultural"},
-      {coords: [-14.26667, -60.86667], popup: "Noel Kempff Mercado National Park (Bolivia, 2000, Natural)", category: "Natural"},
-      {coords: [-20.388889, -43.505556], popup: "Historic Town of Ouro Preto (Brazil, 1980, Cultural)", category: "Cultural"},
-      {coords: [-8.013333, -34.845], popup: "Historic Centre of Olinda (Brazil, 1982, Cultural)", category: "Cultural"},
-      {coords: [-12.972917, -38.512981], popup: "Historic Centre of Salvador de Bahia (Brazil, 1985, Cultural)", category: "Cultural"},
-      {coords: [-20.508201, -43.860806], popup: "Sanctuary of Bom Jesus do Congonhas (Brazil, 1985, Cultural)", category: "Cultural"},
-      {coords: [-25.44814722, -53.80014444], popup: "Iguaçu National Park (Brazil, 1986, Natural)", category: "Natural"},
-      {coords: [-15.793, -47.882], popup: "Brasília (Brazil, 1987, Cultural)", category: "Cultural"},
-      {coords: [-33.047, -71.612], popup: "Historic Quarter of Valparaíso (Chile, 2003, Cultural)", category: "Cultural"},
-      {coords: [-42.58, -73.99], popup: "Churches of Chiloé (Chile, 2000, Cultural)", category: "Cultural"},
-      {coords: [-20.22, -68.18], popup: "Humberstone and Santa Laura Saltpeter Works (Chile, 2005, Cultural)", category: "Cultural"},
-      {coords: [-33.09, -70.34], popup: "Sewell Mining Town (Chile, 2006, Cultural)", category: "Cultural"},
-      {coords: [-19.0, -70.13], popup: "Chinchorro Culture Sites (Chile, 2021, Cultural)", category: "Cultural"},
-      {coords: [11.25, -74.206], popup: "Historic Centre of Santa Cruz de Mompox (Colombia, 1995, Cultural)", category: "Cultural"},
-      {coords: [4.85, -75.67], popup: "Coffee Cultural Landscape of Colombia (Colombia, 2011, Cultural)", category: "Cultural"},
-      {coords: [2.65, -77.75], popup: "National Archeological Park of Tierradentro (Colombia, 1995, Cultural)", category: "Cultural"},
-      {coords: [1.5, -76.0], popup: "San Agustín Archaeological Park (Colombia, 1995, Cultural)", category: "Cultural"},
-      {coords: [4.4, -72.0], popup: "Chiribiquete National Park (Colombia, 2018, Natural)", category: "Natural"},
-      {coords: [7.2, -81.73], popup: "Malpelo Fauna and Flora Sanctuary (Colombia, 2006, Natural)", category: "Natural"},
-      {coords: [5.52, -87.06], popup: "Cocos Island National Park (Costa Rica, 1997, Natural)", category: "Natural"},
-      {coords: [10.85, -85.616667], popup: "Area de Conservación Guanacaste (Costa Rica, 1999, Natural)", category: "Natural"},
-      {coords: [8.938453, -83.502539], popup: "Precolumbian Chiefdom Settlements with Stone Spheres (Costa Rica, 2014, Cultural)", category: "Cultural"},
-      {coords: [21.8, -79.98444444], popup: "Alejandro de Humboldt National Park (Cuba, 2001, Natural)", category: "Natural"},
-      {coords: [23.133333, -82.35], popup: "Trinidad and the Valley de los Ingenios (Cuba, 1988, Cultural)", category: "Cultural"},
-      {coords: [22.61667, -75.0], popup: "Viñales Valley (Cuba, 1999, Cultural)", category: "Cultural"},
-      {coords: [20.0, -77.0], popup: "San Pedro de la Roca Castle, Santiago de Cuba (Cuba, 1997, Cultural)", category: "Cultural"},
-      {coords: [19.968446, -75.870441], popup: "Desembarco del Granma National Park (Cuba, 1999, Natural)", category: "Natural"},
-      {coords: [19.88333, -77.63333], popup: "Archaeological Landscape of the First Coffee Plantations (Cuba, 2000, Cultural)", category: "Cultural"},
-      {coords: [22.145887, -80.452183], popup: "Historic Centre of Cienfuegos (Cuba, 2005, Cultural)", category: "Cultural"},
-      {coords: [21.37861111, -77.91861111], popup: "Historic Centre of Camagüey (Cuba, 2008, Cultural)", category: "Cultural"},
-      {coords: [18.48, -69.88], popup: "Colonial City of Santo Domingo (Dominican Republic, 1990, Cultural)", category: "Cultural"},
-      {coords: [-0.74, -90.31], popup: "Galápagos Islands (Ecuador, 1978, Natural)", category: "Natural"},
-      {coords: [-0.22, -78.51], popup: "City of Quito (Ecuador, 1978, Cultural)", category: "Cultural"},
-      {coords: [-2.17, -80.03], popup: "Santa Ana de los Ríos de Cuenca (Ecuador, 1999, Cultural)", category: "Cultural"},
-      {coords: [-1.67, -78.65], popup: "Sangay National Park (Ecuador, 1983, Natural)", category: "Natural"},
-      {coords: [13.8275, -89.36917], popup: "Joya de Cerén Archaeological Site (El Salvador, 1993, Cultural)", category: "Cultural"},
-      {coords: [17.217, -89.617], popup: "Tikal National Park (Guatemala, 1979, Mixed)", category: "Mixed"},
-      {coords: [14.567, -90.667], popup: "Antigua Guatemala (Guatemala, 1979, Cultural)", category: "Cultural"},
-      {coords: [15.27056, -89.04028], popup: "Archaeological Park and Ruins of Quiriguá (Guatemala, 1981, Cultural)", category: "Cultural"},
-      {coords: [19.93, -72.02], popup: "National History Park – Citadel, Sans-Souci, Ramiers (Haiti, 1982, Cultural)", category: "Cultural"},
-      {coords: [14.85, -89.13333], popup: "Maya Site of Copán (Honduras, 1980, Cultural)", category: "Cultural"},
-      {coords: [15.74444, -84.675], popup: "Río Plátano Biosphere Reserve (Honduras, 1982, Natural)", category: "Natural"},
-      {coords: [18.10, -76.65], popup: "Blue and John Crow Mountains (Jamaica, 2015, Mixed)", category: "Mixed"},
-      {coords: [12.424, -86.882], popup: "Ruins of León Viejo (Nicaragua, 2000, Cultural)", category: "Cultural"},
-      {coords: [12.435, -86.88], popup: "León Cathedral (Nicaragua, 2011, Cultural)", category: "Cultural"},
-      {coords: [8.95, -79.535], popup: "Archaeological Site of Panamá Viejo and Historic District (Panama, 1997/2003, Cultural)", category: "Cultural"},
-      {coords: [7.9, -77.7], popup: "Darien National Park (Panama, 1981, Natural)", category: "Natural"},
-      {coords: [9.40722, -82.93889], popup: "Talamanca Range-La Amistad Reserves (Panama/Costa Rica, 1983, Natural)", category: "Natural"},
-      {coords: [9.55389, -79.65583], popup: "Fortifications of Portobelo and San Lorenzo (Panama, 1980, Cultural)", category: "Cultural"},
-      {coords: [7.5, -81.72], popup: "Coiba National Park (Panama, 2005, Natural)", category: "Natural"},
-      {coords: [-27.12, -55.7], popup: "Jesuit Missions of Trinidad and Jesús (Paraguay, 1993, Cultural)", category: "Cultural"},
-      {coords: [-13.163, -72.545], popup: "Historic Sanctuary of Machu Picchu (Peru, 1983, Mixed)", category: "Mixed"},
-      {coords: [-13.52, -71.97], popup: "City of Cuzco (Peru, 1983, Cultural)", category: "Cultural"},
-      {coords: [-12.05, -77.043], popup: "Historic Centre of Lima (Peru, 1988, Cultural)", category: "Cultural"},
-      {coords: [-9.13, -77.6], popup: "Huascarán National Park (Peru, 1985, Natural)", category: "Natural"},
-      {coords: [-10.892, -77.52], popup: "Sacred City of Caral-Supe (Peru, 2009, Cultural)", category: "Cultural"},
-      {coords: [17.336, -62.839], popup: "Brimstone Hill Fortress National Park (St Kitts & Nevis, 1999, Cultural)", category: "Cultural"},
-      {coords: [13.833, -61.05], popup: "Pitons Management Area (St Lucia, 2004, Natural)", category: "Natural"},
-      {coords: [5.83, -55.17], popup: "Historic Inner City of Paramaribo (Suriname, 2002, Cultural)", category: "Cultural"},
-      {coords: [4.0, -56.5], popup: "Central Suriname Nature Reserve (Suriname, 2000, Natural)", category: "Natural"},
-      {coords: [-34.473, -57.85], popup: "Historic Quarter of Colonia del Sacramento (Uruguay, 1995, Cultural)", category: "Cultural"},
-      {coords: [-33.132, -58.3], popup: "Fray Bentos Industrial Landscape (Uruguay, 2015, Cultural)", category: "Cultural"},
-      {coords: [5.66, -61.5], popup: "Canaima National Park (Venezuela, 1994, Natural)", category: "Natural"},
-      {coords: [11.41, -69.68], popup: "Coro and its Port (Venezuela, 1993, Cultural)", category: "Cultural"},
-      {coords: [10.488, -66.889], popup: "Ciudad Universitaria de Caracas (Venezuela, 2000, Cultural)", category: "Cultural"}
+    /* =========================
+       4) SITES UNESCO (À COMPLÉTER)
+       =========================
+       👉 Tu ajoutes ici les sites,
+       👉 UN PAR UN, sans te battre.
+    */
+    const sites = [
+      {
+        nom: "Machu Picchu",
+        pays: "Pérou",
+        lat: -13.1631,
+        lng: -72.5450,
+        type: "mixte",
+        annee: 1983,
+        description: "Cité inca emblématique perchée dans les Andes."
+      },
+      {
+        nom: "Îles Galápagos",
+        pays: "Équateur",
+        lat: -0.75,
+        lng: -90.30,
+        type: "naturel",
+        annee: 1978,
+        description: "Archipel volcanique, laboratoire naturel de l’évolution."
+      },
+      {
+        nom: "Centre historique de La Havane",
+        pays: "Cuba",
+        lat: 23.1333,
+        lng: -82.3833,
+        type: "culturel",
+        annee: 1982,
+        description: "Ville coloniale espagnole majeure des Caraïbes."
+      },
+      {
+        nom: "Tango",
+        pays: "Argentine / Uruguay",
+        lat: -34.6037,
+        lng: -58.3816,
+        type: "immatériel",
+        annee: 2009,
+        description: "Musique et danse emblématiques du Río de la Plata."
+      }
     ];
-    heritageSites.forEach(function(site) {
-      L.circleMarker(site.coords, categoryStyle(site.category))
-        .bindPopup(site.popup)
-        .addTo(map);
+
+    /* =========================
+       5) AFFICHAGE DES POINTS
+       ========================= */
+    sites.forEach(site => {
+      const color = getColor(site.type);
+
+      L.circleMarker([site.lat, site.lng], {
+        radius: 7,
+        color: color,
+        weight: 2,
+        fillColor: color,
+        fillOpacity: 0.75
+      })
+      .bindPopup(`
+        <strong>${site.nom}</strong><br/>
+        <strong>Pays :</strong> ${site.pays}<br/>
+        <strong>Type :</strong> ${site.type}<br/>
+        <strong>UNESCO :</strong> ${site.annee}<br/><br/>
+        ${site.description}
+      `)
+      .addTo(map);
     });
 
-    // Selected Intangible Heritage markers
-    var intangibleSites = [
-      {coords: [-34.6037, -58.3816], name: "Tango (Argentina/Uruguay, 2009)", category: "Intangible"},
-      {coords: [-17.98, -67.15], name: "Carnival of Oruro (Bolivia, 2008)", category: "Intangible"},
-      {coords: [16.97, -88.21], name: "Language, Dance and Music of the Garifuna (Belize/Honduras, 2008)", category: "Intangible"},
-      {coords: [18.017, -76.809], name: "Reggae Music (Jamaica, 2018)", category: "Intangible"}
-    ];
-    intangibleSites.forEach(function(site) {
-      L.circleMarker(site.coords, categoryStyle(site.category))
-        .bindPopup(site.name)
-        .addTo(map);
-    });
-
-    // Legend control
-    var legend = L.control({position: 'bottomright'});
-    legend.onAdd = function() {
-      var div = L.DomUtil.create('div', 'legend');
-      div.innerHTML += '<b>Legend</b><br>';
-      div.innerHTML += '<i style="background: red"></i> Cultural<br>';
-      div.innerHTML += '<i style="background: green"></i> Natural<br>';
-      div.innerHTML += '<i style="background: blue"></i> Mixed<br>';
-      div.innerHTML += '<i style="background: purple"></i> Intangible';
+    /* =========================
+       6) LÉGENDE
+       ========================= */
+    const legend = L.control({ position: "bottomright" });
+    legend.onAdd = function () {
+      const div = L.DomUtil.create("div", "legend");
+      div.innerHTML += "<strong>Type de patrimoine</strong><br/>";
+      div.innerHTML += `<span style="background:${getColor("culturel")}"></span>Culturel<br/>`;
+      div.innerHTML += `<span style="background:${getColor("naturel")}"></span>Naturel<br/>`;
+      div.innerHTML += `<span style="background:${getColor("mixte")}"></span>Mixte<br/>`;
+      div.innerHTML += `<span style="background:${getColor("immatériel")}"></span>Immatériel<br/>`;
       return div;
     };
     legend.addTo(map);
